@@ -1,0 +1,24 @@
+SELECT  
+c.id as course_id
+, c.name course_name
+, s.name subject_name
+, s.project subject_type, 
+ct.name course_type
+, c.starts_at::date course_start_date, --перевел starts_at в тип date
+u.id user_id,
+u.last_name user_last_name,
+ci.name as city_name,
+case when cu.active=1 then 'Активный' else 'Неактивный' end as active , -- так почеловечнее
+cu.created_at::date open_date, -- Возможно, это дата открытия курса ученику, не совсем ясно, что под этим подразумевалось
+coalesce(FLOOR(available_lessons::decimal/c.lessons_in_month), 0) as avalilable_months, -- число доступных месяцев взял как отношение открытых для ученика уроков к числу уроков в месяц и округлил в меньшую сторону
+count(homework_id) over (partition by u.id) as user_hws_done --сделал оконку, чтобы не надо было группировать и допускать ошибки, считаю кол-во сданных дз на одного ученика
+
+FROM courses c 
+ join subjects s on c.subject_id=s.id
+ join course_types ct on c.course_type_id=ct.id
+ join course_users cu on c.id=cu.course_id
+ join users u on cu.user_id=u.id
+ join cities ci on u.city_id=ci.id
+ join homework_done hd on u.id=hd.user_id
+
+order by c.id
